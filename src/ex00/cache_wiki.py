@@ -8,33 +8,19 @@ import json
 
 
 class Cache_wiki():
-    initial_link = "https://en.wikipedia.org/wiki/Erd%C5%91s_number"
-    max_depth = 3
     discovered_links = 0
-    max_discovered_links = 1000
     known_nodes = dict()
     parsed_nodes = set()
 
-    def __init__(self):
+    def __init__(self, initial_link = "https://en.wikipedia.org/wiki/Erd%C5%91s_number",
+                 max_depth = 3, max_discovered_links = 1000) -> list:
 
-        # Initial setup and parsing arguments
-        self.parser = ArgumentParser()
-        self.parser.add_argument("-p", "--page", help="Require url for wiki page", type=str)
-        self.parser.add_argument("-d", "--max-depth" ,help="Require depth of parsing", type=int)
-        self.parser.add_argument("-l", "--max-page-stored", help="Require max links count to be saved in json", type=int)
-        args = self.parser.parse_args()
-        logging.basicConfig(level=logging.INFO)
-        if args.page:
-            self.initial_link = args.page
-        if args.max_depth:
-            if args.max_depth < 0:
-                self.max_depth = 0
-            else:
-                self.max_depth = args.max_depth
-        if args.max_page_stored:
-            if args.max_page_stored > 0:
-                self.max_discovered_links = args.max_page_stored
+        self.initial_link = initial_link
+        self.max_depth = max_depth
+        self.max_discovered_links = max_discovered_links
 
+    def getlist(self):
+        """parse and get list themself. The only one important function"""
         # Starting parsing wikipeadia
         ## Parsing initial page 
         logging.info(f"""\n\\\\\\\\\\\\\\\\\\\\Currently we are on depth 0\\\\\\\\\\\\\\\\\\\\\\\\\\\\\n""")
@@ -62,14 +48,9 @@ class Cache_wiki():
             logging.info(f"Parsing stopped because limit of known pages was hit ({self.max_discovered_links})")
         
         # Temporary print count of got links
-        # listocheck = list(self.known_nodes.items())
-        # listocheck.sort(key=lambda a: a[1]["counter"])
-        # for rec in listocheck:
-        #     if rec[1]["counter"] > 10:
-        #         print(f"{unquote(rec[0])} - {rec[1]['counter']}")
-
-        with open("wiki.json", "w") as f:
-            json.dump(self.known_nodes, f)
+        listocheck = list(filter(lambda a: a[1]["counter"] >= 2, self.known_nodes.items()))
+        listocheck.sort(key=lambda a: a[1]["counter"], reverse=True)
+        return listocheck
 
     def reconstructing_link(self, href, link) -> str:
             """Some links in wikipedia has relative links. To fix this we use this function.
@@ -84,31 +65,20 @@ class Cache_wiki():
             path = None
             if href_parse.netloc:
                 netloc = href_parse.netloc
-            elif link_parse.netloc:
-                netloc = link_parse.netloc
             else:
-                logging.error("Unusual state reached. Look at reconstrcting_link() 1")
-                exit()
+                netloc = link_parse.netloc
             if href_parse.path:
                 path = href_parse.path
-            elif link_parse.path:
-                path = link_parse.path
             else:
-                logging.error("Unusual state reached. Look at reconstrcting_link() 2")
-                exit()
+                path = link_parse.path
             
             return "https://" + netloc + path
 
     def parse_page(self, link: str) -> set:
         """Parse pages and find new links. All found links adds to self.known_nodes"""
         def add_direct_connection(str1, str2):
-            """Add connection between str1 and str2. Сreating a direct connection,
-            deletes the same reverse connection"""
             self.known_nodes[str1]["forward"].append(str2)
-            if str2 in self.known_nodes[str1]["backward"]:
-                self.known_nodes[str1]["backward"].remove(str2)
-            if (str1 not in self.known_nodes[str2]["forward"]):
-                self.known_nodes[str2]["backward"].append(str1)
+            self.known_nodes[str2]["backward"].append(str1)
 
         # If page already parsed return empty set
         if link in self.parsed_nodes:
@@ -133,14 +103,38 @@ class Cache_wiki():
                 if href in self.known_nodes:
                     self.known_nodes[href]["counter"] += 1
                 else:
-                    self.known_nodes[href] = {"forward": [], "backward": [], "counter": 0}
+                    self.known_nodes[href] = {"forward": [], "backward": [], "counter": 1}
                     self.discovered_links += 1
-                    add_direct_connection(href, link)
+                add_direct_connection(link, href)
                 out.add(href)
                 if self.discovered_links >= self.max_discovered_links:
                     return out
         return out
     
 
+def main():
+    parser = ArgumentParser()
+    parser.add_argument("-p", "--page", help="Require url for wiki page", type=str)
+    parser.add_argument("-d", "--max-depth" ,help="Require depth of parsing", type=int)
+    parser.add_argument("-l", "--max-page-stored", help="Require max links count to be saved in json", type=int)
+    args = parser.parse_args()
+    logging.basicConfig(level=logging.INFO)
+
+    initial_link = "https://en.wikipedia.org/wiki/Erd%C5%91s_number"
+    max_depth, max_discovered_links = 3, 1000
+    if args.page:
+        initial_link = args.page
+    if args.max_depth:
+        if args.max_depth < 0:
+            max_depth = 0
+        else:
+            max_depth = args.max_depth
+    if args.max_page_stored:
+        if args.max_page_stored > 0:
+            max_discovered_links = args.max_page_stored
+    wiki = Cache_wiki(initial_link, max_depth, max_discovered_links).getlist()
+    with open("wiki.json", "w") as f:
+        json.dump(wiki, f)
+
 if __name__ == "__main__":
-    wiki = Cache_wiki()
+    main()
