@@ -15,7 +15,7 @@ class Cache_wiki():
     def __init__(self, initial_link = "https://en.wikipedia.org/wiki/Erd%C5%91s_number",
                  max_depth = 3, max_discovered_links = 1000) -> list:
 
-        self.initial_link = initial_link
+        self.initial_link = unquote(initial_link)
         self.max_depth = max_depth
         self.max_discovered_links = max_discovered_links
 
@@ -24,7 +24,7 @@ class Cache_wiki():
         # Starting parsing wikipeadia
         ## Parsing initial page 
         logging.info(f"""\n\\\\\\\\\\\\\\\\\\\\Currently we are on depth 0\\\\\\\\\\\\\\\\\\\\\\\\\\\\\n""")
-        self.known_nodes[self.initial_link] = {"forward": [], "backward": [], "counter": 0}
+        self.known_nodes[self.initial_link] = {"forward": [], "backward": []}
         set_of_pages_to_parse = self.parse_page(self.initial_link)
         logging.info(f"page {unquote(self.initial_link)} visited. 1/1")
 
@@ -46,10 +46,11 @@ class Cache_wiki():
                 set_of_pages_to_parse = cur_set_of_pages_to_parse
         except Exception as e:
             logging.info(f"Parsing stopped because limit of known pages was hit ({self.max_discovered_links})")
-        
-        # Temporary print count of got links
-        listocheck = list(filter(lambda a: a[1]["counter"] >= 2, self.known_nodes.items()))
-        listocheck.sort(key=lambda a: a[1]["counter"], reverse=True)
+
+        listocheck = dict(filter(lambda a: len(a[1]["backward"]) >= 2 or len(a[1]["forward"]) > 0, self.known_nodes.items()))
+        # listocheck.sort(key=lambda a: a[1]["counter"], reverse=True)
+        # for i in listocheck:
+        #     i = unquote(i[0])
         return listocheck
 
     def reconstructing_link(self, href, link) -> str:
@@ -99,11 +100,15 @@ class Cache_wiki():
             href = a_tag.get("href")
             # Filtering links that doesnt refer to wikipedia pages
             if href and href.find("/wiki/") != -1 and href.find(":") == -1:
+                href = unquote(href)
                 href = self.reconstructing_link(href, link)
+                # if link has meet on this page before skip link and going to next
+                if href in out or href == link:
+                    continue
                 if href in self.known_nodes:
-                    self.known_nodes[href]["counter"] += 1
+                    pass
                 else:
-                    self.known_nodes[href] = {"forward": [], "backward": [], "counter": 1}
+                    self.known_nodes[href] = {"forward": [], "backward": []}
                     self.discovered_links += 1
                 add_direct_connection(link, href)
                 out.add(href)
