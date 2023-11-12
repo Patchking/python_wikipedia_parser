@@ -1,7 +1,9 @@
 import json
 import networkx as nx
-from pyvis.network import Network
 import matplotlib.pyplot as plt
+import logging
+from argparse import ArgumentParser
+from pyvis.network import Network
 
 class Render_graph:
     json_file = None
@@ -27,7 +29,7 @@ class Render_graph:
                 if self.nx_graph.has_node(cur_forward):
                     self.nx_graph.add_edge(rec, cur_forward)
         
-        print("self.nx_graph.size() is", self.nx_graph.size())
+        print("Graph size is", self.nx_graph.size())
 
     def save_as_image(self, filename):
         nx.draw(self.nx_graph, with_labels=False, node_size=1)
@@ -53,6 +55,29 @@ class Render_graph:
         
 
 if __name__ == "__main__":
-    graph = Render_graph("wiki.json")
-    graph.save_as_image("graph.png")
-    graph.save_as_html("graph.html")
+    parser = ArgumentParser()
+    parser.add_argument("-s", "--source", help="Enter source file", type=str)
+    parser.add_argument("--image" ,help="Enter out image name", type=str)
+    parser.add_argument("--html", help="Enter out html name", type=str)
+    args = parser.parse_args()
+    logging.basicConfig(level=logging.INFO)
+
+    source = "wiki.json"
+    image = ""
+    html = ""
+
+    if args.source:
+        source = args.source
+    if args.image:
+        image = args.image
+    if args.html:
+        html = args.html
+    if not image and not html:
+        print("At least --image or --html must be specifyed! Abort")
+        exit()
+
+    graph = Render_graph(source)
+    if image:
+        graph.save_as_image(image)
+    if html:
+        graph.save_as_html(html)
