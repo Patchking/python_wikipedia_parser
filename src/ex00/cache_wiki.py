@@ -48,9 +48,9 @@ class Cache_wiki():
             logging.info(f"Parsing stopped because limit of known pages was hit ({self.max_discovered_links})")
 
         listocheck = dict(filter(lambda a: len(a[1]["backward"]) >= 2 or len(a[1]["forward"]) > 0, self.known_nodes.items()))
-        # listocheck.sort(key=lambda a: a[1]["counter"], reverse=True)
-        # for i in listocheck:
-        #     i = unquote(i[0])
+        for i in listocheck:
+            listocheck[i]["forward"] = list(filter(lambda a: a in listocheck ,listocheck[i]["forward"]))
+            listocheck[i]["backward"] = list(filter(lambda a: a in listocheck ,listocheck[i]["backward"]))
         return listocheck
 
     def reconstructing_link(self, href, link) -> str:
