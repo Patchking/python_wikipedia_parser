@@ -84,7 +84,7 @@ if __name__ == "__main__":
     parser.add_argument("-n", "--non-directed", help="Specify if graph is bidirected or not", action="store_true")
     parser.add_argument("-v", "--verbose", help="Is print full path", action="store_true")
     args = parser.parse_args()
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
 
     init_file = "wiki.json"
     both_directed = False
@@ -105,12 +105,16 @@ if __name__ == "__main__":
         evocation_flag = True
 
     sp = Shortest_path(init_file, from_page, to_page, both_directed, evocation_flag).get_path()
-
-    if evocation_flag:
-        for i in range(len(sp)):
-            sp[i] = sp[i][sp[i].find("/wiki/") + 6:].replace("_", " ")
-        for i in sp[:-1]:
-            print(f"'{i}' -> ", end="")
-        print(f"'{sp[-1]}'")
-    print(len(sp))
+    if sp:
+        if evocation_flag:
+            for i in range(len(sp)):
+                sp[i] = sp[i][sp[i].find("/wiki/") + 6:].replace("_", " ")
+            for i in sp[:-1]:
+                print(f"'{i}' -> ", end="")
+            print(f"'{sp[-1]}'")
+        print(len(sp))
+    else:
+        if evocation_flag:
+            print("There's is no route")
+        print(-1)
     
