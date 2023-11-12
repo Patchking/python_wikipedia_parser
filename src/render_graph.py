@@ -55,4 +55,3 @@ class Render_graph:
 if __name__ == "__main__":
     graph = Render_graph("wiki.json")
     graph.save_as_image("graph.png")
-    graph.save_as_html("graph.html")
